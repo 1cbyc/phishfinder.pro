@@ -23,7 +23,7 @@ export async function checkGoogleSafeBrowsing(url: string) {
         },
       },
       {
-        timeout: 5000,
+        timeout: 10000,
       },
     );
 

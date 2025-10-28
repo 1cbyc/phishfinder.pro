@@ -16,7 +16,7 @@ export async function checkVirusTotal(url: string) {
         resource: url,
       }),
       {
-        timeout: 5000,
+        timeout: 10000,
       }
     );
 

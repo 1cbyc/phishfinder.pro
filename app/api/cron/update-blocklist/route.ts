@@ -52,7 +52,9 @@ export async function GET(request: NextRequest) {
     for (const source of blocklistSources) {
       try {
         console.log(`Fetching blocklist from ${source.name}...`);
-        const response = await axios.get<any[]>(source.url);
+        const response = await axios.get<any[]>(source.url, {
+          timeout: 10000,
+        });
         const domains = source.parser(response.data);
 
         if (!Array.isArray(domains) || domains.length === 0) {
