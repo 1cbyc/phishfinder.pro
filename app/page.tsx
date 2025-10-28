@@ -68,9 +68,12 @@ export default function Home() {
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            🛡️ PhishDetect
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <img src="/logo.png" alt="PhishDetect Logo" className="h-16 w-16" />
+            <h1 className="text-5xl font-bold text-gray-900">
+              PhishDetect
+            </h1>
+          </div>
           <p className="text-xl text-gray-600">
             Advanced URL Security Analysis
           </p>
