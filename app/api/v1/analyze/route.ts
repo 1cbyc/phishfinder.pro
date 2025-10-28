@@ -57,9 +57,13 @@ export async function POST(request: Request) {
       googleSafeBrowsing: googleResult,
     };
 
+    // Calculate confidence score based on results
+    const confidenceScore = googleResult.isMalicious ? 0 : 100;
+
     const responsePayload = {
       url,
       verdict: finalVerdict,
+      confidenceScore,
       source: "live" as const,
       scannedAt: new Date().toISOString(),
       report,

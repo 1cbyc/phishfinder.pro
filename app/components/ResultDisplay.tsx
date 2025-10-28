@@ -1,28 +1,29 @@
 "use client";
 
-interface Report {
+interface AnalysisReport {
   googleSafeBrowsing?: {
     isMalicious: boolean;
     threatTypes?: string[];
+    error?: string;
   };
   virusTotal?: {
+    isMalicious: boolean;
     positives: number;
     total: number;
-    scanDate?: string;
+    error?: string;
   };
   phishTank?: {
     isKnownPhish: boolean;
-    verified?: boolean;
+    error?: string;
   };
 }
 
 interface AnalysisResult {
   url: string;
-  verdict: "Safe" | "Suspicious" | "Malicious";
-  confidenceScore: number;
-  scannedAt: string;
+  verdict: string;
   source: "cache" | "live";
-  report: Report;
+  scannedAt: string;
+  report: AnalysisReport;
 }
 
 interface ResultDisplayProps {
@@ -43,11 +44,6 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 70) return "text-green-600";
-    if (score >= 40) return "text-yellow-600";
-    return "text-red-600";
-  };
 
   return (
     <div className="space-y-6">
@@ -55,23 +51,13 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
       <div
         className={`bg-white rounded-2xl shadow-xl p-8 border-t-4 ${getVerdictColor(result.verdict)}`}
       >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Analysis Result
-            </h2>
-            <p className="text-sm text-gray-500">
-              Scanned from {result.source === "cache" ? "cache" : "live scan"}
-            </p>
-          </div>
-          <div className="text-right">
-            <div
-              className={`text-4xl font-bold ${getScoreColor(result.confidenceScore)}`}
-            >
-              {result.confidenceScore}%
-            </div>
-            <div className="text-sm text-gray-500">Confidence</div>
-          </div>
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Analysis Result
+          </h2>
+          <p className="text-sm text-gray-500">
+            Scanned from {result.source === "cache" ? "cache" : "live scan"}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div
@@ -127,15 +113,15 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
               <h4 className="font-semibold text-gray-900 mb-2">
                 🦠 VirusTotal
               </h4>
-              <p className="text-gray-700">
-                {result.report.virusTotal.positives} out of{" "}
-                {result.report.virusTotal.total} scanners flagged this URL
-              </p>
-              {result.report.virusTotal.scanDate && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Last scanned:{" "}
-                  {new Date(result.report.virusTotal.scanDate).toLocaleString()}
-                </p>
+              {result.report.virusTotal.error ? (
+                <p className="text-gray-600">{result.report.virusTotal.error}</p>
+              ) : (
+                <>
+                  <p className="text-gray-700">
+                    {result.report.virusTotal.positives} out of{" "}
+                    {result.report.virusTotal.total} scanners flagged this URL
+                  </p>
+                </>
               )}
             </div>
           )}
@@ -144,16 +130,15 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
           {result.report.phishTank && (
             <div className="border-l-4 border-orange-500 pl-4">
               <h4 className="font-semibold text-gray-900 mb-2">🎣 PhishTank</h4>
-              <p
-                className={`font-medium ${result.report.phishTank.isKnownPhish ? "text-red-600" : "text-green-600"}`}
-              >
-                {result.report.phishTank.isKnownPhish
-                  ? "⚠️ Known phishing site"
-                  : "✓ Not in database"}
-              </p>
-              {result.report.phishTank.verified && (
-                <p className="text-sm text-gray-500 mt-1">
-                  ✓ Verified by PhishTank community
+              {result.report.phishTank.error ? (
+                <p className="text-gray-600">{result.report.phishTank.error}</p>
+              ) : (
+                <p
+                  className={`font-medium ${result.report.phishTank.isKnownPhish ? "text-red-600" : "text-green-600"}`}
+                >
+                  {result.report.phishTank.isKnownPhish
+                    ? "⚠️ Known phishing site"
+                    : "✓ Not in database"}
                 </p>
               )}
             </div>
