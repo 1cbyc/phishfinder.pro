@@ -1,35 +1,51 @@
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.pipeline import OneHotEncoder
 from sklearn.impute import SimpleImputer
+import pandas as pd
+import numpy as np
 
 def preprocess_features(X_train, X_test):
-    # i am trying to define which columns are numeric and which are categorical
-    numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+    """Preprocess features by handling missing values and scaling"""
+    # Create copies to avoid warnings
+    X_train = X_train.copy()
+    X_test = X_test.copy()
+    
+    # Handle missing values with median for numeric columns
+    numeric_features = X_train.select_dtypes(include=[np.number]).columns
+    for col in numeric_features:
+        median_val = X_train[col].median()
+        X_train[col].fillna(median_val, inplace=True)
+        X_test[col].fillna(median_val, inplace=True)
+    
+    # Handle categorical columns (fill with 'unknown')
     categorical_features = X_train.select_dtypes(include=['object']).columns
-
-    # starting to preprocess the pipelines for both types of features
-    numeric_transformer = Pipeline(steps=[
-        ('imputer', SimpleImputer(strategy='mean')),
-        ('scaler', StandardScaler())])
+    for col in categorical_features:
+        X_train[col].fillna('unknown', inplace=True)
+        X_test[col].fillna('unknown', inplace=True)
     
-    categorical_tranformer =Pipeline(steps=[
-        ('imputer', SimpleImputer(strategy='mean')),
-        ('scaler', StandardScaler())])
+    # Encode categorical features
+    label_encoders = {}
+    for col in categorical_features:
+        le = LabelEncoder()
+        X_train[col] = le.fit_transform(X_train[col].astype(str))
+        # Handle unseen categories in test set
+        test_categories = X_test[col].astype(str)
+        known_categories = set(le.classes_)
+        test_categories = test_categories.apply(lambda x: x if x in known_categories else 'unknown')
+        try:
+            X_test[col] = le.transform(test_categories)
+        except:
+            # If 'unknown' is not in classes, add it
+            le.classes_ = np.append(le.classes_, 'unknown')
+            X_test[col] = le.transform(test_categories)
+        label_encoders[col] = le
     
-    # i want to  combine both transformers ion a preprocessor
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', numeric_transformer, numeric_features),
-            ('cat', categorical_tranformer, categorical_features)
-        ]
-    )
-
-    # i want to fit and transform the training data and transform test data
-    X_train = preprocessor.fit_transform(X_train)
-    X_test = preprocessor.transform(X_test)
-
-    return X_train, X_test
+    # Scale numeric features
+    scaler = StandardScaler()
+    X_train[numeric_features] = scaler.fit_transform(X_train[numeric_features])
+    X_test[numeric_features] = scaler.transform(X_test[numeric_features])
+    
+    return X_train, X_test, label_encoders
 
 # what i did here is to ensure all categorical features are encoded and normalize or scale numerical features if necessary.
