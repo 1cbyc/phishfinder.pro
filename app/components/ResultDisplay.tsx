@@ -61,8 +61,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
               Analysis Result
             </h2>
             <p className="text-sm text-gray-500">
-              Scanned from{" "}
-              {result.source === "cache" ? "cache" : "live scan"}
+              Scanned from {result.source === "cache" ? "cache" : "live scan"}
             </p>
           </div>
           <div className="text-right">
@@ -144,9 +143,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
           {/* PhishTank */}
           {result.report.phishTank && (
             <div className="border-l-4 border-orange-500 pl-4">
-              <h4 className="font-semibold text-gray-900 mb-2">
-                🎣 PhishTank
-              </h4>
+              <h4 className="font-semibold text-gray-900 mb-2">🎣 PhishTank</h4>
               <p
                 className={`font-medium ${result.report.phishTank.isKnownPhish ? "text-red-600" : "text-green-600"}`}
               >
@@ -175,4 +172,3 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
 };
 
 export default ResultDisplay;
-

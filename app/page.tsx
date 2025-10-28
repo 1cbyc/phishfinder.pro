@@ -3,29 +3,28 @@
 import { useState } from "react";
 import ResultDisplay from "./components/ResultDisplay";
 
-interface Report {
-  googleSafeBrowsing?: {
+// Define the structure of the analysis result, matching the API response
+interface AnalysisReport {
+  googleSafeBrowsing: {
     isMalicious: boolean;
     threatTypes?: string[];
+    error?: string;
   };
-  virusTotal?: {
+  virusTotal: {
+    isMalicious: boolean;
     positives: number;
     total: number;
-    scanDate?: string;
+    error?: string;
   };
-  phishTank?: {
-    isKnownPhish: boolean;
-    verified?: boolean;
-  };
+  phishTank: { isKnownPhish: boolean; error?: string };
 }
 
 interface AnalysisResult {
   url: string;
-  verdict: "Safe" | "Suspicious" | "Malicious";
-  confidenceScore: number;
-  scannedAt: string;
+  verdict: string;
   source: "cache" | "live";
-  report: Report;
+  scannedAt: string;
+  report: AnalysisReport;
 }
 
 export default function Home() {
