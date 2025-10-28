@@ -2,43 +2,105 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { checkGoogleSafeBrowsing } from "@/lib/googleSafeBrowsing";
 import { checkVirusTotal } from "@/lib/virusTotal";
-import { checkPhishTank } from "@/lib/phishTank";
 
-// Define the structure for documents in our MongoDB collection
-interface CachedAnalysis {
-  _id?: string;
-  url: string;
-  final_verdict: string;
-  full_report: object;
-  last_scanned_at: Date;
-}
+const DB_NAME = process.env.DB_NAME || "phishdetect";
+const CACHE_COLLECTION = "url_analysis_cache";
+const SUBMISSIONS_COLLECTION = "user_submissions";
+const BLOCKLIST_COLLECTION = "source_blocklists";
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Extracts the hostname from a given URL for blocklist checking.
+ * @param url The URL to parse.
+ * @returns The hostname or null if the URL is invalid.
+ */
+const getDomain = (url: string): string | null => {
+  try {
+    let hostname = new URL(url).hostname;
+    // Remove "www." prefix to standardize the domain
+    return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+  } catch (error) {
+    console.error(`Could not parse domain from URL: ${url}`, error);
+    return null;
+  }
+};
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { url } = body;
+    let { url } = body;
 
-    if (!url) {
-      return NextResponse.json({ error: "URL is required" }, { status: 400 });
+    if (!url || typeof url !== "string") {
+      return NextResponse.json(
+        { error: "URL is required and must be a string." },
+        { status: 400 },
+      );
     }
 
-    // Connect to MongoDB
-    const client = await clientPromise;
-    const db = client.db(process.env.DB_NAME);
-    const collection = db.collection<CachedAnalysis>("url_analysis_cache");
+    // Ensure URL has a protocol for accurate parsing and API calls
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = "http://" + url;
+    }
 
-    // --- 1. Check for a fresh result in the cache ---
-    const cachedData = await collection.findOne({ url });
+    const mongoClient = await clientPromise;
+    const db = mongoClient.db(DB_NAME);
 
-    const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+    // --- 1. Check Internal Intelligence First ---
+
+    // Check #1: User-submitted malicious URLs
+    const userSubmission = await db
+      .collection(SUBMISSIONS_COLLECTION)
+      .findOne({ url });
+    if (userSubmission) {
+      console.log(`Malicious URL identified from user submissions: ${url}`);
+      return NextResponse.json({
+        url,
+        verdict: "Malicious",
+        source: "User Submission",
+        scannedAt: new Date().toISOString(),
+        report: {
+          internalBlock: { isMalicious: true, source: "User Submission" },
+        },
+      });
+    }
+
+    // Check #2: Curated source blocklists (by domain)
+    const domain = getDomain(url);
+    if (domain) {
+      const blockedDomain = await db
+        .collection(BLOCKLIST_COLLECTION)
+        .findOne({ domain });
+      if (blockedDomain) {
+        console.log(
+          `Malicious domain identified from source blocklist: ${domain}`,
+        );
+        return NextResponse.json({
+          url,
+          verdict: "Malicious",
+          source: `Blocklist (${blockedDomain.source})`,
+          scannedAt: new Date().toISOString(),
+          report: {
+            internalBlock: {
+              isMalicious: true,
+              source: `Blocklist (${blockedDomain.source})`,
+            },
+          },
+        });
+      }
+    }
+
+    // --- 2. Check for a fresh, cached result from external APIs ---
+    const cacheCollection = db.collection(CACHE_COLLECTION);
+    const cachedData = await cacheCollection.findOne({ url: url });
     if (cachedData) {
       const isCacheFresh =
-        new Date().getTime() - new Date(cachedData.last_scanned_at).getTime() <
+        new Date().getTime() -
+          new Date(cachedData.last_scanned_at as Date).getTime() <
         CACHE_DURATION_MS;
       if (isCacheFresh) {
         console.log(`Returning fresh cached result for: ${url}`);
         return NextResponse.json({
-          ...(cachedData.full_report as any),
+          ...(cachedData.full_report as object),
           source: "cache",
         });
       }
@@ -46,49 +108,56 @@ export async function POST(request: Request) {
 
     console.log(`Performing live analysis for: ${url}`);
 
-    // --- 2. Call external APIs (Cache Miss) ---
-    const googleResult = await checkGoogleSafeBrowsing(url);
-    // TODO: Integrate other services (VirusTotal, PhishTank) and run in parallel.
+    // --- 3. Perform Live Analysis (Cache Miss) ---
+    const [googleResult, virusTotalResult] = await Promise.allSettled([
+      checkGoogleSafeBrowsing(url),
+      checkVirusTotal(url),
+    ]);
 
-    // --- 3. Aggregate results ---
-    const finalVerdict = googleResult.isMalicious ? "Malicious" : "Safe";
+    const googleReport =
+      googleResult.status === "fulfilled"
+        ? googleResult.value
+        : { isMalicious: false, threatTypes: [], error: "Check failed" };
+    const virusTotalReport =
+      virusTotalResult.status === "fulfilled"
+        ? virusTotalResult.value
+        : { isMalicious: false, positives: 0, total: 0, error: "Check failed" };
+
+    // --- 4. Aggregate Results for a Final Verdict ---
+    let finalVerdict = "Safe";
+    if (googleReport.isMalicious || virusTotalReport.positives > 5) {
+      finalVerdict = "Malicious";
+    } else if (virusTotalReport.positives > 0) {
+      finalVerdict = "Suspicious";
+    }
 
     const report = {
-      googleSafeBrowsing: googleResult,
+      googleSafeBrowsing: googleReport,
+      virusTotal: virusTotalReport,
     };
-
-    // Calculate confidence score based on results
-    const confidenceScore = googleResult.isMalicious ? 0 : 100;
 
     const responsePayload = {
       url,
       verdict: finalVerdict,
-      confidenceScore,
       source: "live" as const,
       scannedAt: new Date().toISOString(),
       report,
     };
 
-    // --- 4. Store the new result in the cache ---
-    try {
-      await collection.updateOne(
-        { url: url },
-        {
-          $set: {
-            final_verdict: finalVerdict,
-            full_report: responsePayload,
-            last_scanned_at: new Date(),
-          },
+    // --- 5. Store the new result in the cache ---
+    await cacheCollection.updateOne(
+      { url: url },
+      {
+        $set: {
+          full_report: responsePayload,
+          last_scanned_at: new Date(responsePayload.scannedAt),
         },
-        { upsert: true }, // This will insert a new document if one doesn't exist
-      );
-      console.log(`Successfully cached result for: ${url}`);
-    } catch (cacheWriteError) {
-      console.error("MongoDB cache write error:", cacheWriteError);
-      // Non-blocking error: we still return the result to the user.
-    }
+      },
+      { upsert: true },
+    );
+    console.log(`Successfully cached result for: ${url}`);
 
-    // --- 5. Return the live analysis result ---
+    // --- 6. Return the live analysis result ---
     return NextResponse.json(responsePayload);
   } catch (error) {
     console.error("Error in analyze endpoint:", error);
