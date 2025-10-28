@@ -28,8 +28,15 @@ const blocklistSources = [
 
 export async function GET(request: NextRequest) {
   // 1. Security Check: Ensure this endpoint is only called by Vercel's Cron service
+  // Check for Vercel Cron header OR the custom secret
+  const vercelCron = request.headers.get('x-vercel-signature');
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  
+  // Allow either Vercel's signature or our custom bearer token
+  const isVercelCron = !!vercelCron;
+  const isValidAuth = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  
+  if (!isVercelCron && !isValidAuth) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
