@@ -22,7 +22,14 @@ export default function RootLayout({
       <body className={`${inter.className} flex flex-col min-h-screen`}>
         <main className="flex-grow">{children}</main>
         <footer className="w-full text-center p-4 mt-auto text-sm text-gray-500">
-          Isaac Emmanuel © 2023 | Built with {"<3"}
+          <a 
+            href="https://nsisong.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:text-gray-700 hover:underline transition-colors"
+          >
+            Isaac Emmanuel
+          </a> © 2023 | Built with ❤️
         </footer>
       </body>
     </html>
