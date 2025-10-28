@@ -63,14 +63,21 @@ export async function GET(request: NextRequest) {
         }
 
         // 3. Prepare bulk database operations to be efficient
+        // Using $setOnInsert to only set fields on new documents
+        // Using $addToSet to add the source to the sources array without duplicates
         const bulkOps = domains.map(domain => ({
           updateOne: {
             filter: { domain: domain },
             update: {
               $setOnInsert: {
                 domain: domain,
-                source: source.name,
                 createdAt: new Date(),
+              },
+              $addToSet: {
+                sources: source.name,
+              },
+              $set: {
+                updatedAt: new Date(),
               },
             },
             upsert: true,
