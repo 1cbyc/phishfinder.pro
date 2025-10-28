@@ -16,6 +16,10 @@ interface AnalysisReport {
     isKnownPhish: boolean;
     error?: string;
   };
+  internalBlock?: {
+    isMalicious: boolean;
+    source: string;
+  };
 }
 
 interface AnalysisResult {
@@ -82,6 +86,27 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
           Detailed Report
         </h3>
         <div className="space-y-6">
+          {/* Internal Intelligence */}
+          {result.report.internalBlock && (
+            <div className="border-l-4 border-purple-500 pl-4">
+              <h4 className="font-semibold text-gray-900 mb-2">
+                🛡️ Internal Intelligence
+              </h4>
+              <p
+                className={`font-medium ${result.report.internalBlock.isMalicious ? "text-red-600" : "text-green-600"}`}
+              >
+                {result.report.internalBlock.isMalicious
+                  ? "⚠️ Malicious detected"
+                  : "✓ Safe"}
+              </p>
+              <div className="mt-2">
+                <p className="text-sm text-gray-600">
+                  Source: {result.report.internalBlock.source}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Google Safe Browsing */}
           {result.report.googleSafeBrowsing && (
             <div className="border-l-4 border-blue-500 pl-4">
