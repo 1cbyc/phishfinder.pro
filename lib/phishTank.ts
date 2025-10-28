@@ -16,7 +16,7 @@ export async function checkPhishTank(url: string) {
         url: url,
       }),
       {
-        timeout: 5000,
+        timeout: 10000,
       }
     );
 

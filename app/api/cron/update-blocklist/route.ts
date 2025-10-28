@@ -52,7 +52,9 @@ export async function GET(request: NextRequest) {
     for (const source of blocklistSources) {
       try {
         console.log(`Fetching blocklist from ${source.name}...`);
-        const response = await axios.get<any[]>(source.url);
+        const response = await axios.get<any[]>(source.url, {
+          timeout: 10000,
+        });
         const domains = source.parser(response.data);
 
         if (!Array.isArray(domains) || domains.length === 0) {
@@ -61,14 +63,21 @@ export async function GET(request: NextRequest) {
         }
 
         // 3. Prepare bulk database operations to be efficient
+        // Using $setOnInsert to only set fields on new documents
+        // Using $addToSet to add the source to the sources array without duplicates
         const bulkOps = domains.map(domain => ({
           updateOne: {
             filter: { domain: domain },
             update: {
               $setOnInsert: {
                 domain: domain,
-                source: source.name,
                 createdAt: new Date(),
+              },
+              $addToSet: {
+                sources: source.name,
+              },
+              $set: {
+                updatedAt: new Date(),
               },
             },
             upsert: true,
