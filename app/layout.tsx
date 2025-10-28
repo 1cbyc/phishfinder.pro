@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "PhishDetect by Isaac Emmanuel",
   description: "A real-time phishing and malware threat scanner.",
+  icons: {
+    icon: '/logo.png',
+  },
 };
 
 export default function RootLayout({
