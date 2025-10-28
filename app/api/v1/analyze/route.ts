@@ -125,9 +125,9 @@ export async function POST(request: Request) {
 
     // --- 4. Aggregate Results for a Final Verdict ---
     let finalVerdict = "Safe";
-    if (googleReport.isMalicious || virusTotalReport.positives > 5) {
+    if (googleReport.isMalicious || (virusTotalReport && virusTotalReport.positives > 5)) {
       finalVerdict = "Malicious";
-    } else if (virusTotalReport.positives > 0) {
+    } else if (virusTotalReport && virusTotalReport.positives > 0) {
       finalVerdict = "Suspicious";
     }
 
