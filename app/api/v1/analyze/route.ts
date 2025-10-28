@@ -1,343 +1,96 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import axios from 'axios';
+import { NextResponse } from "next/server";
+import clientPromise from "@/lib/mongodb";
+import { checkGoogleSafeBrowsing } from "@/lib/googleSafeBrowsing";
+import { checkVirusTotal } from "@/lib/virusTotal";
+import { checkPhishTank } from "@/lib/phishTank";
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-interface AnalysisReport {
-  googleSafeBrowsing?: {
-    isMalicious: boolean;
-    threatTypes?: string[];
-  };
-  virusTotal?: {
-    positives: number;
-    total: number;
-    scanDate?: string;
-  };
-  phishTank?: {
-    isKnownPhish: boolean;
-    verified?: boolean;
-  };
-}
-
-interface CachedResult {
-  id: number;
+// Define the structure for documents in our MongoDB collection
+interface CachedAnalysis {
+  _id?: string;
   url: string;
   final_verdict: string;
-  full_report: AnalysisReport;
-  last_scanned_at: string;
-  created_at: string;
+  full_report: object;
+  last_scanned_at: Date;
 }
 
-// Helper function to validate URL
-function isValidUrl(url: string): boolean {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
-// Check cache in Supabase
-async function checkCache(url: string): Promise<CachedResult | null> {
-  try {
-    const { data, error } = await supabase
-      .from('url_analysis_cache')
-      .select('*')
-      .eq('url', url)
-      .single();
-
-    if (error || !data) return null;
-    return data as CachedResult;
-  } catch (error) {
-    console.error('Error checking cache:', error);
-    return null;
-  }
-}
-
-// Save to cache
-async function saveToCache(url: string, verdict: string, report: AnalysisReport): Promise<void> {
-  try {
-    const { error } = await supabase
-      .from('url_analysis_cache')
-      .upsert({
-        url,
-        final_verdict: verdict,
-        full_report: report,
-        last_scanned_at: new Date().toISOString(),
-      });
-
-    if (error) {
-      console.error('Error saving to cache:', error);
-    }
-  } catch (error) {
-    console.error('Error saving to cache:', error);
-  }
-}
-
-// Check Google Safe Browsing
-async function checkGoogleSafeBrowsing(url: string): Promise<any> {
-  try {
-    const apiKey = process.env.GOOGLE_SAFE_BROWSING_API_KEY;
-    if (!apiKey) {
-      console.warn('Google Safe Browsing API key not configured');
-      return null;
-    }
-
-    const response = await axios.post(
-      `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`,
-      {
-        client: {
-          clientId: 'phish-detect',
-          clientVersion: '1.0',
-        },
-        threatInfo: {
-          threatTypes: ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE'],
-          platformTypes: ['ANY_PLATFORM'],
-          threatEntryTypes: ['URL'],
-          threatEntries: [{ url }],
-        },
-      },
-      {
-        timeout: 5000,
-      }
-    );
-
-    const matches = response.data.matches || [];
-    return {
-      isMalicious: matches.length > 0,
-      threatTypes: matches.map((m: any) => m.threatType),
-    };
-  } catch (error: any) {
-    console.error('Google Safe Browsing error:', error.message);
-    return null;
-  }
-}
-
-// Check VirusTotal
-async function checkVirusTotal(url: string): Promise<any> {
-  try {
-    const apiKey = process.env.VIRUSTOTAL_API_KEY;
-    if (!apiKey) {
-      console.warn('VirusTotal API key not configured');
-      return null;
-    }
-
-    // First, submit URL for scanning
-    const submitResponse = await axios.post(
-      'https://www.virustotal.com/vtapi/v2/url/scan',
-      new URLSearchParams({
-        apikey: apiKey,
-        url: url,
-      }),
-      {
-        timeout: 5000,
-      }
-    );
-
-    // Then get the report
-    const reportResponse = await axios.post(
-      'https://www.virustotal.com/vtapi/v2/url/report',
-      new URLSearchParams({
-        apikey: apiKey,
-        resource: url,
-      }),
-      {
-        timeout: 5000,
-      }
-    );
-
-    const data = reportResponse.data;
-    if (data.response_code === 1) {
-      return {
-        positives: data.positives || 0,
-        total: data.total || 0,
-        scanDate: data.scan_date,
-      };
-    }
-    return null;
-  } catch (error: any) {
-    console.error('VirusTotal error:', error.message);
-    return null;
-  }
-}
-
-// Check PhishTank
-async function checkPhishTank(url: string): Promise<any> {
-  try {
-    const apiKey = process.env.PHISHTANK_API_KEY;
-    if (!apiKey) {
-      console.warn('PhishTank API key not configured');
-      return null;
-    }
-
-    const response = await axios.post(
-      'http://checkurl.phishtank.com/checkurl/',
-      new URLSearchParams({
-        format: 'json',
-        app_key: apiKey,
-        url: url,
-      }),
-      {
-        timeout: 5000,
-      }
-    );
-
-    const results = response.data.results;
-    if (results) {
-      return {
-        isKnownPhish: results.in_database === true,
-        verified: results.verified === true,
-      };
-    }
-    return null;
-  } catch (error: any) {
-    console.error('PhishTank error:', error.message);
-    return null;
-  }
-}
-
-// Determine final verdict based on all sources
-function determineVerdict(report: AnalysisReport): { verdict: string; score: number } {
-  let maliciousCount = 0;
-  let suspiciousCount = 0;
-  let safeCount = 0;
-
-  // Google Safe Browsing
-  if (report.googleSafeBrowsing?.isMalicious) {
-    maliciousCount += 2;
-  } else if (report.googleSafeBrowsing) {
-    safeCount++;
-  }
-
-  // VirusTotal
-  if (report.virusTotal) {
-    const positiveRate = report.virusTotal.positives / report.virusTotal.total;
-    if (positiveRate > 0.3) {
-      maliciousCount += 2;
-    } else if (positiveRate > 0.1) {
-      suspiciousCount++;
-    } else {
-      safeCount++;
-    }
-  }
-
-  // PhishTank
-  if (report.phishTank?.isKnownPhish && report.phishTank.verified) {
-    maliciousCount += 2;
-  } else if (report.phishTank?.isKnownPhish) {
-    suspiciousCount++;
-  } else if (report.phishTank) {
-    safeCount++;
-  }
-
-  // Calculate score (0-100)
-  const totalChecks = (report.googleSafeBrowsing ? 1 : 0) + 
-                      (report.virusTotal ? 1 : 0) + 
-                      (report.phishTank ? 1 : 0);
-  
-  const confidenceScore = totalChecks > 0 
-    ? Math.round(((safeCount / totalChecks) * 100)) 
-    : 0;
-
-  // Determine verdict
-  let verdict = 'Safe';
-  if (maliciousCount >= 3) {
-    verdict = 'Malicious';
-  } else if (maliciousCount > 0 || suspiciousCount > 0) {
-    verdict = 'Suspicious';
-  }
-
-  return { verdict, score: confidenceScore };
-}
-
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { url } = body;
 
-    // Validate input
-    if (!url || typeof url !== 'string') {
-      return NextResponse.json(
-        { error: 'URL is required' },
-        { status: 400 }
-      );
+    if (!url) {
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
-    if (!isValidUrl(url)) {
-      return NextResponse.json(
-        { error: 'Invalid URL format' },
-        { status: 400 }
-      );
+    // Connect to MongoDB
+    const client = await clientPromise;
+    const db = client.db(process.env.DB_NAME);
+    const collection = db.collection<CachedAnalysis>("url_analysis_cache");
+
+    // --- 1. Check for a fresh result in the cache ---
+    const cachedData = await collection.findOne({ url });
+
+    const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+    if (cachedData) {
+      const isCacheFresh =
+        new Date().getTime() - new Date(cachedData.last_scanned_at).getTime() <
+        CACHE_DURATION_MS;
+      if (isCacheFresh) {
+        console.log(`Returning fresh cached result for: ${url}`);
+        return NextResponse.json({
+          ...(cachedData.full_report as any),
+          source: "cache",
+        });
+      }
     }
 
-    // Check cache first
-    const cached = await checkCache(url);
-    if (cached) {
-      return NextResponse.json({
-        url: cached.url,
-        verdict: cached.final_verdict,
-        confidenceScore: 50, // Default for cached results
-        scannedAt: cached.last_scanned_at,
-        source: 'cache',
-        report: cached.full_report,
-      });
-    }
+    console.log(`Performing live analysis for: ${url}`);
 
-    // Run live checks
-    const report: AnalysisReport = {};
-    
-    // Run all checks in parallel with timeout
-    const [googleResult, virusTotalResult, phishTankResult] = await Promise.allSettled([
-      checkGoogleSafeBrowsing(url),
-      checkVirusTotal(url),
-      checkPhishTank(url),
-    ]);
+    // --- 2. Call external APIs (Cache Miss) ---
+    const googleResult = await checkGoogleSafeBrowsing(url);
+    // TODO: Integrate other services (VirusTotal, PhishTank) and run in parallel.
 
-    if (googleResult.status === 'fulfilled' && googleResult.value) {
-      report.googleSafeBrowsing = googleResult.value;
-    }
+    // --- 3. Aggregate results ---
+    const finalVerdict = googleResult.isMalicious ? "Malicious" : "Safe";
 
-    if (virusTotalResult.status === 'fulfilled' && virusTotalResult.value) {
-      report.virusTotal = virusTotalResult.value;
-    }
+    const report = {
+      googleSafeBrowsing: googleResult,
+    };
 
-    if (phishTankResult.status === 'fulfilled' && phishTankResult.value) {
-      report.phishTank = phishTankResult.value;
-    }
-
-    // If no external services returned results, return error
-    if (Object.keys(report).length === 0) {
-      return NextResponse.json(
-        { error: 'Unable to analyze URL: no external services available' },
-        { status: 503 }
-      );
-    }
-
-    // Determine final verdict
-    const { verdict, score } = determineVerdict(report);
-
-    // Save to cache
-    await saveToCache(url, verdict, report);
-
-    return NextResponse.json({
+    const responsePayload = {
       url,
-      verdict,
-      confidenceScore: score,
+      verdict: finalVerdict,
+      source: "live" as const,
       scannedAt: new Date().toISOString(),
-      source: 'live',
       report,
-    });
-  } catch (error: any) {
-    console.error('Analysis error:', error);
+    };
+
+    // --- 4. Store the new result in the cache ---
+    try {
+      await collection.updateOne(
+        { url: url },
+        {
+          $set: {
+            final_verdict: finalVerdict,
+            full_report: responsePayload,
+            last_scanned_at: new Date(),
+          },
+        },
+        { upsert: true }, // This will insert a new document if one doesn't exist
+      );
+      console.log(`Successfully cached result for: ${url}`);
+    } catch (cacheWriteError) {
+      console.error("MongoDB cache write error:", cacheWriteError);
+      // Non-blocking error: we still return the result to the user.
+    }
+
+    // --- 5. Return the live analysis result ---
+    return NextResponse.json(responsePayload);
+  } catch (error) {
+    console.error("Error in analyze endpoint:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "An internal server error occurred." },
+      { status: 500 },
     );
   }
 }
-
