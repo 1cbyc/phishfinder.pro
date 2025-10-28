@@ -71,18 +71,23 @@ export async function POST(request: Request) {
         .collection(BLOCKLIST_COLLECTION)
         .findOne({ domain });
       if (blockedDomain) {
+        // Handle both legacy structure (source as string) and new structure (sources as array)
+        const sources = Array.isArray(blockedDomain.sources) 
+          ? blockedDomain.sources 
+          : [blockedDomain.source || 'Unknown'];
+        
         console.log(
           `Malicious domain identified from source blocklist: ${domain}`,
         );
         return NextResponse.json({
           url,
           verdict: "Malicious",
-          source: `Blocklist (${blockedDomain.source})`,
+          source: `Blocklist (${sources.join(', ')})`,
           scannedAt: new Date().toISOString(),
           report: {
             internalBlock: {
               isMalicious: true,
-              source: `Blocklist (${blockedDomain.source})`,
+              source: `Blocklist (${sources.join(', ')})`,
             },
           },
         });
