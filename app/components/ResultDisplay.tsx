@@ -25,7 +25,7 @@ interface AnalysisReport {
 interface AnalysisResult {
   url: string;
   verdict: string;
-  source: "cache" | "live";
+  source: string;
   scannedAt: string;
   report: AnalysisReport;
 }
