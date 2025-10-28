@@ -1,10 +1,10 @@
-import axios from 'axios';
+import axios from "axios";
 
 export async function checkGoogleSafeBrowsing(url: string) {
   try {
     const apiKey = process.env.GOOGLE_SAFE_BROWSING_API_KEY;
     if (!apiKey) {
-      console.warn('Google Safe Browsing API key not configured');
+      console.warn("Google Safe Browsing API key not configured");
       return { isMalicious: false, threatTypes: [] };
     }
 
@@ -12,19 +12,19 @@ export async function checkGoogleSafeBrowsing(url: string) {
       `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`,
       {
         client: {
-          clientId: 'phish-detect',
-          clientVersion: '1.0',
+          clientId: "phish-detect",
+          clientVersion: "1.0",
         },
         threatInfo: {
-          threatTypes: ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE'],
-          platformTypes: ['ANY_PLATFORM'],
-          threatEntryTypes: ['URL'],
+          threatTypes: ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE"],
+          platformTypes: ["ANY_PLATFORM"],
+          threatEntryTypes: ["URL"],
           threatEntries: [{ url }],
         },
       },
       {
         timeout: 5000,
-      }
+      },
     );
 
     const matches = response.data.matches || [];
@@ -33,8 +33,7 @@ export async function checkGoogleSafeBrowsing(url: string) {
       threatTypes: matches.map((m: any) => m.threatType) || [],
     };
   } catch (error: any) {
-    console.error('Google Safe Browsing error:', error.message);
+    console.error("Google Safe Browsing error:", error.message);
     return { isMalicious: false, threatTypes: [] };
   }
 }
-
