@@ -44,3 +44,6 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# personal
+*.md
