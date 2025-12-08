@@ -23,7 +23,7 @@ i tried to run the script without training the model with the dataset, so i am g
 
 ## Current Coverage
 
-Total domains: 73,827
+Total malicious domains: 73,827
 - MetaMask: 73,620 domains
 - OpenPhish: 207 domains
 - PhishFort: 2 domains
