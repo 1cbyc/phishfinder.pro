@@ -4,8 +4,8 @@ import "./globals.css";
 
 const grotesk = localFont({
   src: [
-    { path: "../fonts/grotesk/SpaceGrotesk-Regular.woff", weight: "400", style: "normal" },
-    { path: "../fonts/grotesk/SpaceGrotesk-Medium.woff", weight: "500", style: "normal" },
+    { path: "./fonts/grotesk/SpaceGrotesk-Regular.woff", weight: "400", style: "normal" },
+    { path: "./fonts/grotesk/SpaceGrotesk-Medium.woff", weight: "500", style: "normal" },
   ],
   display: "swap",
 });
