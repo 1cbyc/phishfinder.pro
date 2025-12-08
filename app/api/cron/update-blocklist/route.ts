@@ -12,10 +12,29 @@ const normalizeDomain = (domain: string): string => {
 const blocklistSources = [
   {
     name: 'MetaMask',
-    url: 'https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/hosts.json',
-    parser: (data: any[]): string[] => {
-      if (!Array.isArray(data)) return [];
-      return data.map(d => typeof d === 'string' ? normalizeDomain(d) : normalizeDomain(String(d)));
+    url: 'https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json',
+    parser: (data: any): string[] => {
+      if (!data) return [];
+      let domains: string[] = [];
+      
+      if (Array.isArray(data)) {
+        domains = data.map(d => typeof d === 'string' ? d : String(d));
+      } else if (typeof data === 'object') {
+        if (data.toleratedOrigins && Array.isArray(data.toleratedOrigins)) {
+          domains = data.toleratedOrigins;
+        }
+        if (data.whitelist && Array.isArray(data.whitelist)) {
+          domains = [...domains, ...data.whitelist];
+        }
+        if (data.blacklist && Array.isArray(data.blacklist)) {
+          domains = [...domains, ...data.blacklist];
+        }
+        if (data.fuzzylist && Array.isArray(data.fuzzylist)) {
+          domains = [...domains, ...data.fuzzylist];
+        }
+      }
+      
+      return [...new Set(domains.map(d => normalizeDomain(d)))].filter(d => d.length > 0);
     },
   },
   {
@@ -50,25 +69,6 @@ const blocklistSources = [
   },
   {
     name: 'PhishTank',
-    url: 'https://data.phishtank.com/data/online-valid.json',
-    parser: (data: any): string[] => {
-      if (!data || !Array.isArray(data)) return [];
-      const domains: string[] = [];
-      for (const entry of data) {
-        if (entry && entry.url) {
-          try {
-            const url = new URL(entry.url);
-            domains.push(normalizeDomain(url.hostname));
-          } catch (e) {
-            continue;
-          }
-        }
-      }
-      return [...new Set(domains)];
-    },
-  },
-  {
-    name: 'OpenPhish',
     url: 'https://openphish.com/feed.txt',
     parser: (data: string): string[] => {
       if (typeof data !== 'string') return [];
@@ -89,35 +89,66 @@ const blocklistSources = [
     },
   },
   {
-    name: 'CryptoScamDB',
-    url: 'https://cryptoscamdb.org/api/blacklist',
-    parser: (data: any): string[] => {
-      if (!data || !Array.isArray(data)) return [];
-      return data
-        .map(item => {
-          if (item && typeof item === 'object') {
-            return item.domain || item.hostname || item.url || null;
-          }
-          return typeof item === 'string' ? item : null;
-        })
-        .filter((d): d is string => d !== null)
-        .map(d => normalizeDomain(d));
-    },
-  },
-  {
-    name: 'MalwareDomainList',
-    url: 'https://www.malwaredomainlist.com/mdlcsv.php',
+    name: 'OpenPhish',
+    url: 'https://openphish.com/feed.txt',
     parser: (data: string): string[] => {
       if (typeof data !== 'string') return [];
       const lines = data.split('\n');
       const domains: string[] = [];
       for (const line of lines) {
         const trimmed = line.trim();
-        if (trimmed && !trimmed.startsWith('#')) {
-          const parts = trimmed.split(',');
-          if (parts.length > 0) {
-            const domain = parts[0].trim().replace(/^https?:\/\//, '').split('/')[0];
-            if (domain) {
+        if (trimmed && (trimmed.startsWith('http://') || trimmed.startsWith('https://'))) {
+          try {
+            const url = new URL(trimmed);
+            domains.push(normalizeDomain(url.hostname));
+          } catch (e) {
+            continue;
+          }
+        }
+      }
+      return [...new Set(domains)];
+    },
+  },
+  {
+    name: 'CryptoScamDB',
+    url: 'https://api.cryptoscamdb.org/v1/addresses',
+    parser: (data: any): string[] => {
+      if (!data) return [];
+      const domains: string[] = [];
+      
+      if (data.result && Array.isArray(data.result)) {
+        for (const item of data.result) {
+          if (item && typeof item === 'object') {
+            if (item.name) domains.push(item.name);
+            if (item.url) {
+              try {
+                const url = new URL(item.url);
+                domains.push(normalizeDomain(url.hostname));
+              } catch (e) {
+                continue;
+              }
+            }
+          }
+        }
+      }
+      
+      return [...new Set(domains.map(d => normalizeDomain(d)))].filter(d => d.length > 0);
+    },
+  },
+  {
+    name: 'MalwareDomainList',
+    url: 'https://mirror1.malwaredomains.com/files/domains.txt',
+    parser: (data: string): string[] => {
+      if (typeof data !== 'string') return [];
+      const lines = data.split('\n');
+      const domains: string[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('\t')) {
+          const parts = trimmed.split(/\s+/);
+          if (parts.length > 1) {
+            const domain = parts[1].trim();
+            if (domain && domain.includes('.')) {
               domains.push(normalizeDomain(domain));
             }
           }
@@ -128,7 +159,7 @@ const blocklistSources = [
   },
   {
     name: 'Phantom',
-    url: 'https://raw.githubusercontent.com/phantom/blocklist/main/blocklist.json',
+    url: 'https://raw.githubusercontent.com/phantom/blocklist/main/src/blocklist.json',
     parser: (data: any): string[] => {
       if (!data) return [];
       let domains: string[] = [];
@@ -137,7 +168,7 @@ const blocklistSources = [
         domains = data.map(item => {
           if (typeof item === 'string') return item;
           if (item && typeof item === 'object') {
-            return item.domain || item.url || item.hostname || null;
+            return item.domain || item.url || item.hostname || item.name || null;
           }
           return null;
         }).filter((d): d is string => d !== null);
@@ -145,7 +176,9 @@ const blocklistSources = [
         if (data.domains && Array.isArray(data.domains)) {
           domains = data.domains;
         } else if (data.entries && Array.isArray(data.entries)) {
-          domains = data.entries.map((entry: any) => entry.domain || entry.url || entry.hostname).filter((d: any) => d);
+          domains = data.entries.map((entry: any) => entry.domain || entry.url || entry.hostname || entry.name).filter((d: any) => d);
+        } else if (data.blacklist && Array.isArray(data.blacklist)) {
+          domains = data.blacklist;
         } else {
           domains = Object.keys(data).filter(k => k.includes('.'));
         }
