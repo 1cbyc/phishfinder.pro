@@ -84,7 +84,7 @@ export default function Home() {
       <div className="aurora-layer" />
       <div className="aurora-layer slow" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.12),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(16,185,129,0.1),transparent_30%),radial-gradient(circle_at_50%_80%,rgba(124,58,237,0.12),transparent_30%)]" />
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-12 sm:space-y-16">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-10 sm:space-y-16">
         <header className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center font-bold text-white">
@@ -98,32 +98,31 @@ export default function Home() {
         </header>
 
         <section className="grid lg:grid-cols-2 gap-8 sm:gap-10 items-center">
-          <div className="space-y-6">
-            <p className="inline-flex items-center px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-slate-200">
-              Live URL scanning • Multi-engine verdicts • Open source
+          <div className="space-y-5">
+            <p className="inline-flex items-center px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs sm:text-sm text-slate-200">
+              Live scans • Multi-engine • Open source
             </p>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
-              Stop phishing links before they land.
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight space-y-1">
+              <span className="block">Stop phishing links.</span>
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">
                 One scan. Clear verdict.
               </span>
             </h1>
-            <p className="text-lg text-slate-300 max-w-2xl">
-              PhishFinder runs your URL through trusted sources and our internal intelligence to tell you if it’s safe,
-              suspicious, or malicious—fast.
+            <p className="text-base sm:text-lg text-slate-300 max-w-2xl">
+              Multi-source checks (Google Safe Browsing, VirusTotal, internal blocklists) to tell you if a link is safe, suspicious, or malicious—fast.
             </p>
-            <div className="flex flex-wrap gap-2 text-sm text-slate-300">
+            <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-slate-300">
               <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">Google Safe Browsing</span>
               <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">VirusTotal</span>
-              <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">Blocklists + reports</span>
+              <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">Blocklists</span>
               <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">24h cache</span>
             </div>
           </div>
 
-          <div className="bg-white text-slate-900 rounded-3xl shadow-2xl p-6 sm:p-8 border border-slate-200/60 backdrop-blur">
+          <div className="bg-white text-slate-900 rounded-3xl shadow-2xl p-5 sm:p-8 border border-slate-200/60 backdrop-blur">
             <h2 className="text-xl font-semibold mb-2">Scan a URL</h2>
             <p className="text-sm text-slate-500 mb-6">
-              No secrets stored. Results are cached for 24 hours and refreshed on demand.
+              No secrets stored. Cached for 24h, refreshed on demand.
             </p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <label className="block text-sm font-medium text-slate-700" htmlFor="url">
