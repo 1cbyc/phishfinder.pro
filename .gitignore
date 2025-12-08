@@ -37,3 +37,24 @@ next-env.d.ts
 
 # personal
 *.md
+auto.ps1
+
+# PHP API sensitive files
+api-php/vendor/
+api-php/.env
+api-php/config.local.php
+api-php/*.log
+api-php/error_log
+
+# Python model files (if they contain sensitive data)
+phish_detect-1.0/src/*.pkl
+phish_detect-1.0/src/*.model
+phish_detect-2.0/src/*.pkl
+phish_detect-2.0/src/*.model
+
+# Any other environment or config files with real values
+**/.env.production
+**/.env.local
+**/config.production.php
+**/secrets.json
+**/credentials.json
