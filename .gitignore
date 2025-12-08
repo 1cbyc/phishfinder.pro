@@ -39,6 +39,7 @@ next-env.d.ts
 *.md
 auto.ps1
 !README.md
+v0-ui
 
 # PHP API sensitive files
 api-php/vendor/
