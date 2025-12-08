@@ -1,8 +1,4 @@
 <?php
-/**
- * Google Safe Browsing API Integration
- */
-
 function checkGoogleSafeBrowsing(string $url): array {
     $apiKey = GOOGLE_SAFE_BROWSING_API_KEY;
     
