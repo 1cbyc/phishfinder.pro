@@ -81,6 +81,8 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
+      <div className="aurora-layer" />
+      <div className="aurora-layer slow" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.12),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(16,185,129,0.1),transparent_30%),radial-gradient(circle_at_50%_80%,rgba(124,58,237,0.12),transparent_30%)]" />
       <div className="relative max-w-6xl mx-auto px-4 py-16 space-y-16">
         <header className="flex items-center justify-between gap-4">
