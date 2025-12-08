@@ -28,9 +28,9 @@ export default function RootLayout({
       <body className={`${grotesk.className} flex flex-col min-h-screen bg-slate-950`}>
         <main className="flex-grow">{children}</main>
         <footer className="w-full p-5 mt-auto text-sm text-slate-300 bg-slate-950/80 border-t border-white/5">
-          <div className="flex flex-col items-center gap-1 text-center">
+          <div className="flex flex-col items-center gap-2 text-center">
             <span className="text-slate-400">© 2023 - Isaac Emmanuel</span>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-slate-300">
+            <div className="flex flex-wrap items-center justify-center gap-3 text-slate-300">
               <a
                 href="https://nsisong.com"
                 target="_blank"
@@ -39,7 +39,7 @@ export default function RootLayout({
               >
                 My Portfolio
               </a>
-              <span className="hidden sm:inline text-slate-600">|</span>
+              <span className="text-slate-600">|</span>
               <a
                 href="https://nsisonglabs.com"
                 target="_blank"
