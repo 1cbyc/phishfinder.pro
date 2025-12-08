@@ -27,16 +27,28 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${grotesk.className} flex flex-col min-h-screen bg-slate-950`}>
         <main className="flex-grow">{children}</main>
-        <footer className="w-full text-center p-4 mt-auto text-sm text-slate-400">
-          <a
-            href="https://nsisong.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors"
-          >
-            Isaac Emmanuel
-          </a>{" "}
-          © 2023
+        <footer className="w-full text-center p-4 mt-auto text-sm text-slate-400 flex flex-col sm:flex-row gap-2 sm:gap-4 items-center justify-center">
+          <span>© 2023 Isaac Emmanuel</span>
+          <span className="hidden sm:block text-slate-600">•</span>
+          <div className="flex gap-3">
+            <a
+              href="https://nsisong.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors"
+            >
+              Portfolio: nsisong.com
+            </a>
+            <span className="text-slate-600">|</span>
+            <a
+              href="https://nsisonglabs.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors"
+            >
+              Agency: nsisonglabs.com
+            </a>
+          </div>
         </footer>
       </body>
     </html>
