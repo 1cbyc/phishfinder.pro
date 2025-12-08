@@ -1,16 +1,7 @@
 <?php
-/**
- * Report Phishing URL Endpoint
- * POST /api/v1/report.php
- * 
- * Request: { "url": "https://example.com" }
- * Response: { "message": "URL reported successfully..." }
- */
-
 require_once __DIR__ . '/../../config.php';
 require_once __DIR__ . '/../../lib/mongodb.php';
 
-// Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed. Use POST.']);
