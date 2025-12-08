@@ -1,10 +1,4 @@
 <?php
-/**
- * VirusTotal API Integration
- * 
- * Note: This uses the v2 API. Consider upgrading to v3 for better performance.
- */
-
 function checkVirusTotal(string $url): ?array {
     $apiKey = VIRUSTOTAL_API_KEY;
     
