@@ -40,7 +40,7 @@ Known phishing and malicious domains are immediately flagged as **Malicious** fr
 - **Detailed Reports** - See exactly why a URL is flagged
 - **Modern UI** - Clean, responsive design with dark theme 
 
-## What I would do later this week:
+## What I would do later
 
 - Search counter to show total scans performed
 - User submission system for phishing reports
