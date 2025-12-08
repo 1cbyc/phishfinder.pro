@@ -1,16 +1,5 @@
 <?php
-/**
- * Configuration file for PhishDetect PHP API
- * 
- * ⚠️ SECURITY WARNING: This file is in the repository for open source purposes.
- * NEVER commit real API keys or connection strings to this file!
- * 
- * For cPanel hosting, set these in your .env file or directly here
- * (Note: Some cPanel hosts support .env files, others require direct configuration)
- * 
- * Best practice: Use environment variables or a separate config.local.php file
- * that is excluded from git (see .gitignore)
- */
+// Configuration (use env vars; never commit real secrets)
 
 // Database Configuration (MongoDB)
 // Note: Some cPanel hosts support MongoDB, but MySQL is more common
