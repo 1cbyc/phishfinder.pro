@@ -112,12 +112,12 @@ export async function GET(request: NextRequest) {
     let totalDomainsAdded = 0;
     const summary = [];
 
-    // 2. Fetch and process each blocklist source
-    for (const source of blocklistSources) {
+    // 2. Fetch and process each blocklist source in parallel for speed
+    const sourcePromises = blocklistSources.map(async (source) => {
       try {
         console.log(`Fetching blocklist from ${source.name}...`);
         const response = await axios.get(source.url, {
-          timeout: 15000,
+          timeout: 10000,
           headers: {
             'User-Agent': 'PhishFinder/1.0',
           },
@@ -127,20 +127,17 @@ export async function GET(request: NextRequest) {
 
         if (!Array.isArray(domains) || domains.length === 0) {
           console.warn(`No domains found or invalid format for source: ${source.name}`);
-          summary.push({
+          return {
             source: source.name,
             domains_found: 0,
             new_domains_added: 0,
             warning: 'No valid domains parsed',
-          });
-          continue;
+          };
         }
 
         const uniqueDomains = [...new Set(domains)].filter(d => d && d.length > 0);
 
         // 3. Prepare bulk database operations to be efficient
-        // Using $setOnInsert to only set fields on new documents
-        // Using $addToSet to add the source to the sources array without duplicates
         const bulkOps = uniqueDomains.map(domain => ({
           updateOne: {
             filter: { domain: domain },
@@ -163,22 +160,38 @@ export async function GET(request: NextRequest) {
         // 4. Execute the bulk write to the database
         const result = await collection.bulkWrite(bulkOps);
         const domainsAdded = result.upsertedCount;
-        totalDomainsAdded += domainsAdded;
 
-        const sourceSummary = {
-            source: source.name,
-            domains_found: uniqueDomains.length,
-            new_domains_added: domainsAdded,
-            total_processed: uniqueDomains.length,
-        };
-        summary.push(sourceSummary);
         console.log(`Finished processing ${source.name}. Found ${uniqueDomains.length} domains, added ${domainsAdded} new ones.`);
 
-      } catch (error) {
-        console.error(`Failed to process source ${source.name}:`, error);
+        return {
+          source: source.name,
+          domains_found: uniqueDomains.length,
+          new_domains_added: domainsAdded,
+          total_processed: uniqueDomains.length,
+        };
+
+      } catch (error: any) {
+        console.error(`Failed to process source ${source.name}:`, error.message);
+        return {
+          source: source.name,
+          error: error.message || 'Failed to fetch or process list.'
+        };
+      }
+    });
+
+    // Wait for all sources to complete
+    const results = await Promise.allSettled(sourcePromises);
+    
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        summary.push(result.value);
+        if (result.value.new_domains_added) {
+          totalDomainsAdded += result.value.new_domains_added;
+        }
+      } else {
         summary.push({
-            source: source.name,
-            error: 'Failed to fetch or process list.'
+          source: 'Unknown',
+          error: result.reason?.message || 'Unknown error'
         });
       }
     }
