@@ -1,12 +1,4 @@
 <?php
-/**
- * MongoDB Connection Handler for PHP
- * 
- * Requires: MongoDB PHP Library (composer require mongodb/mongodb)
- * 
- * For cPanel: You may need to install MongoDB extension via PECL or use MongoDB Atlas (cloud)
- */
-
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use MongoDB\Client;
