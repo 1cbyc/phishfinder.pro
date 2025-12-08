@@ -20,3 +20,10 @@ https://www.phishtank.com/
 initially i was thinking i will find one pre-set dataset on kaggle to use that has legit and phishing separately. but clearly right now i found something else the [PhiUSiil dataset](ttps://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset). Will use that, so i will adjust the data preprocessing script. 
 
 i tried to run the script without training the model with the dataset, so i am going to train it first. fuck me for not remembering. 
+
+## Current Coverage
+
+Total domains: 73,827
+- MetaMask: 73,620 domains
+- OpenPhish: 207 domains
+- PhishFort: 2 domains
