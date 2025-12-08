@@ -31,16 +31,18 @@ export async function GET(request: Request) {
         { $sort: { count: -1 } },
       ]).toArray();
 
+      const lastUpdatedDoc = await collection.findOne(
+        {},
+        { sort: { updatedAt: -1 }, projection: { updatedAt: 1 } }
+      );
+
       const stats = {
         total_domains: totalDomains,
         sources: sourceStats.map((s: any) => ({
           name: s._id,
           count: s.count,
         })),
-        last_updated: await collection.findOne(
-          {},
-          { sort: { updatedAt: -1 }, projection: { updatedAt: 1 } }
-        )?.updatedAt || null,
+        last_updated: (lastUpdatedDoc as any)?.updatedAt || null,
       };
 
       return NextResponse.json(stats);
