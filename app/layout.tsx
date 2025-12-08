@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const grotesk = localFont({
+  src: [
+    { path: "../fonts/grotesk/SpaceGrotesk-Regular.woff", weight: "400", style: "normal" },
+    { path: "../fonts/grotesk/SpaceGrotesk-Medium.woff", weight: "500", style: "normal" },
+  ],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "PhishDetect by Isaac Emmanuel",
-  description: "A real-time phishing and malware threat scanner.",
+  title: "PhishFinder",
+  description: "Multi-source phishing URL analysis with clear verdicts.",
   icons: {
-    icon: '/logo.png',
+    icon: "/logo.png",
   },
 };
 
@@ -19,17 +25,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} flex flex-col min-h-screen`}>
+      <body className={`${grotesk.className} flex flex-col min-h-screen bg-slate-950`}>
         <main className="flex-grow">{children}</main>
-        <footer className="w-full text-center p-4 mt-auto text-sm text-gray-500">
-          <a 
-            href="https://nsisong.com" 
-            target="_blank" 
+        <footer className="w-full text-center p-4 mt-auto text-sm text-slate-400">
+          <a
+            href="https://nsisong.com"
+            target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-gray-700 hover:underline transition-colors"
+            className="hover:text-white transition-colors"
           >
             Isaac Emmanuel
-          </a> © 2023 | Built with ❤️
+          </a>{" "}
+          © 2023
         </footer>
       </body>
     </html>
