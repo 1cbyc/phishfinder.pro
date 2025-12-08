@@ -1,11 +1,4 @@
 <?php
-/**
- * Health Check Endpoint
- * GET /api/health.php
- * 
- * Returns system health status
- */
-
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../lib/mongodb.php';
 
