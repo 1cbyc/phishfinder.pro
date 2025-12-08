@@ -135,7 +135,7 @@ export default function Home() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://example.com"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-400 focus:border-transparent transition"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 focus:border-transparent transition"
                 required
                 disabled={isLoading}
               />
@@ -185,7 +185,9 @@ export default function Home() {
               </p>
             </div>
             <a
-              href="mailto:security@yourdomain.com"
+              href={`mailto:hello@nsisonglabs.com?subject=${encodeURIComponent("Phish report")}&body=${encodeURIComponent(
+                ["URL: ", "Why suspicious: ", "Evidence (screenshots/headers): ", "", "Thank you!"].join("\n")
+              )}`}
               className="inline-flex items-center gap-2 bg-white text-slate-900 px-5 py-3 rounded-xl font-semibold shadow-lg hover:-translate-y-[1px] transition"
             >
               Report a phish
