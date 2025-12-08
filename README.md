@@ -1,7 +1,6 @@
 # PhishFinder
 
-URL threat analysis service that scans links through multiple security engines to detect phishing and malicious content.
-
+i intended to use nlp to analyze URLs, email content, and webpage features to determine if a link or message is a phishing attempt. i might also build a classification model using labeled data from phishing and legitimate sites that i will gather too. But right now, I just ended up building an efficient URL threat analysis service that scans links through multiple security engines to detect phishing and malicious content. 
 
 
 
