@@ -36,20 +36,21 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result }) => {
     "idle" | "reporting" | "reported"
   >("idle");
 
-  const handleReport = async () => {
+  const handleReport = () => {
     setReportStatus("reporting");
-    try {
-      const res = await fetch("/api/v1/report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: result.url }),
-      });
-      if (!res.ok) throw new Error("Report failed");
-      setReportStatus("reported");
-    } catch (error) {
-      console.error("Failed to report URL:", error);
-      setReportStatus("idle"); // Optionally show an error message
-    }
+    const subject = encodeURIComponent(`Phish report: ${result.url}`);
+    const body = encodeURIComponent(
+      [
+        "URL: " + result.url,
+        "Why suspicious: ",
+        "Evidence (screenshots/headers): ",
+        "",
+        "Thank you!"
+      ].join("\n")
+    );
+    const mailto = `mailto:hello@nsisonglabs.com?subject=${subject}&body=${body}`;
+    window.location.href = mailto;
+    setReportStatus("reported");
   };
 
   const getVerdictColor = (verdict: string) => {
