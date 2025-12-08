@@ -68,27 +68,6 @@ const blocklistSources = [
     },
   },
   {
-    name: 'PhishTank',
-    url: 'https://openphish.com/feed.txt',
-    parser: (data: string): string[] => {
-      if (typeof data !== 'string') return [];
-      const lines = data.split('\n');
-      const domains: string[] = [];
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed && trimmed.startsWith('http')) {
-          try {
-            const url = new URL(trimmed);
-            domains.push(normalizeDomain(url.hostname));
-          } catch (e) {
-            continue;
-          }
-        }
-      }
-      return [...new Set(domains)];
-    },
-  },
-  {
     name: 'OpenPhish',
     url: 'https://openphish.com/feed.txt',
     parser: (data: string): string[] => {
@@ -107,84 +86,6 @@ const blocklistSources = [
         }
       }
       return [...new Set(domains)];
-    },
-  },
-  {
-    name: 'CryptoScamDB',
-    url: 'https://api.cryptoscamdb.org/v1/addresses',
-    parser: (data: any): string[] => {
-      if (!data) return [];
-      const domains: string[] = [];
-      
-      if (data.result && Array.isArray(data.result)) {
-        for (const item of data.result) {
-          if (item && typeof item === 'object') {
-            if (item.name) domains.push(item.name);
-            if (item.url) {
-              try {
-                const url = new URL(item.url);
-                domains.push(normalizeDomain(url.hostname));
-              } catch (e) {
-                continue;
-              }
-            }
-          }
-        }
-      }
-      
-      return [...new Set(domains.map(d => normalizeDomain(d)))].filter(d => d.length > 0);
-    },
-  },
-  {
-    name: 'MalwareDomainList',
-    url: 'https://mirror1.malwaredomains.com/files/domains.txt',
-    parser: (data: string): string[] => {
-      if (typeof data !== 'string') return [];
-      const lines = data.split('\n');
-      const domains: string[] = [];
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('\t')) {
-          const parts = trimmed.split(/\s+/);
-          if (parts.length > 1) {
-            const domain = parts[1].trim();
-            if (domain && domain.includes('.')) {
-              domains.push(normalizeDomain(domain));
-            }
-          }
-        }
-      }
-      return [...new Set(domains)].filter(d => d.length > 0);
-    },
-  },
-  {
-    name: 'Phantom',
-    url: 'https://raw.githubusercontent.com/phantom/blocklist/main/src/blocklist.json',
-    parser: (data: any): string[] => {
-      if (!data) return [];
-      let domains: string[] = [];
-      
-      if (Array.isArray(data)) {
-        domains = data.map(item => {
-          if (typeof item === 'string') return item;
-          if (item && typeof item === 'object') {
-            return item.domain || item.url || item.hostname || item.name || null;
-          }
-          return null;
-        }).filter((d): d is string => d !== null);
-      } else if (typeof data === 'object') {
-        if (data.domains && Array.isArray(data.domains)) {
-          domains = data.domains;
-        } else if (data.entries && Array.isArray(data.entries)) {
-          domains = data.entries.map((entry: any) => entry.domain || entry.url || entry.hostname || entry.name).filter((d: any) => d);
-        } else if (data.blacklist && Array.isArray(data.blacklist)) {
-          domains = data.blacklist;
-        } else {
-          domains = Object.keys(data).filter(k => k.includes('.'));
-        }
-      }
-      
-      return [...new Set(domains.map(d => normalizeDomain(d)))].filter(d => d.length > 0);
     },
   },
 ];
@@ -216,10 +117,11 @@ export async function GET(request: NextRequest) {
       try {
         console.log(`Fetching blocklist from ${source.name}...`);
         const response = await axios.get(source.url, {
-          timeout: 30000,
+          timeout: 15000,
           headers: {
             'User-Agent': 'PhishFinder/1.0',
           },
+          validateStatus: (status) => status < 500,
         });
         const domains = source.parser(response.data);
 
