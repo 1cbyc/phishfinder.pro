@@ -1,20 +1,9 @@
 <?php
-/**
- * URL Analysis Endpoint
- * POST /api/v1/analyze.php
- * 
- * Request: { "url": "https://example.com" }
- * Response: { "url": "...", "verdict": "Safe|Suspicious|Malicious", ... }
- */
-
 require_once __DIR__ . '/../../config.php';
 require_once __DIR__ . '/../../lib/mongodb.php';
 require_once __DIR__ . '/../../lib/googleSafeBrowsing.php';
 require_once __DIR__ . '/../../lib/virusTotal.php';
 
-/**
- * Extract domain from URL
- */
 function getDomain(string $url): ?string {
     try {
         $parsed = parse_url($url);
@@ -35,7 +24,6 @@ function getDomain(string $url): ?string {
     }
 }
 
-// Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed. Use POST.']);
