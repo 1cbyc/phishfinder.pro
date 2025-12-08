@@ -126,6 +126,34 @@ const blocklistSources = [
       return [...new Set(domains)].filter(d => d.length > 0);
     },
   },
+  {
+    name: 'Phantom',
+    url: 'https://raw.githubusercontent.com/phantom/blocklist/main/blocklist.json',
+    parser: (data: any): string[] => {
+      if (!data) return [];
+      let domains: string[] = [];
+      
+      if (Array.isArray(data)) {
+        domains = data.map(item => {
+          if (typeof item === 'string') return item;
+          if (item && typeof item === 'object') {
+            return item.domain || item.url || item.hostname || null;
+          }
+          return null;
+        }).filter((d): d is string => d !== null);
+      } else if (typeof data === 'object') {
+        if (data.domains && Array.isArray(data.domains)) {
+          domains = data.domains;
+        } else if (data.entries && Array.isArray(data.entries)) {
+          domains = data.entries.map((entry: any) => entry.domain || entry.url || entry.hostname).filter((d: any) => d);
+        } else {
+          domains = Object.keys(data).filter(k => k.includes('.'));
+        }
+      }
+      
+      return [...new Set(domains.map(d => normalizeDomain(d)))].filter(d => d.length > 0);
+    },
+  },
 ];
 
 export async function GET(request: NextRequest) {
